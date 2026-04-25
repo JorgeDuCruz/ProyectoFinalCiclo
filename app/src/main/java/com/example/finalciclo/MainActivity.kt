@@ -11,6 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.finalciclo.Interfaz.MainScreen
+import com.example.finalciclo.ViewModel.MainViewModel
 import com.example.finalciclo.ui.theme.FinalCicloTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,12 +22,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FinalCicloTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                val viewModel: MainViewModel = viewModel()
+
+                // Llamamos a la pantalla principal de gestión de horas
+                // Esta es la etapa 1 definida en el plan de trabajo [cite: 52]
+                MainScreen(viewModel = viewModel)
             }
         }
     }

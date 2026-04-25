@@ -1,8 +1,8 @@
 package com.example.finalciclo.Interfaz
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
@@ -14,8 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.example.finalciclo.ViewModel.MainViewModel
 import java.time.format.DateTimeFormatter
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import java.time.LocalDateTime
 import java.util.Locale
 
@@ -36,11 +34,18 @@ fun MainScreen(viewModel: MainViewModel = androidx.lifecycle.viewmodel.compose.v
         onSalidaClick = {
             showDatePicker(context, fechaSalida) { viewModel.updateFechaSalida(it) }
         },
-        onHoraEntradaChange = { nuevoTexto ->
-            viewModel.updateHoraDesdeTexto(esEntrada = true, texto = nuevoTexto)
+        onHoraEntradaClick = {
+            showTimePicker(context, fechaEntrada) { h, m -> viewModel.updateHoraEntrada(h, m) }
         },
-        onHoraSalidaChange = { nuevoTexto ->
-            viewModel.updateHoraDesdeTexto(esEntrada = false, texto = nuevoTexto)
+        onMinutoEntradaClick = {
+            showTimePicker(context, fechaEntrada) { h, m -> viewModel.updateHoraEntrada(h, m) }
+        },
+        // Nuevas funciones para Salida
+        onHoraSalidaClick = {
+            showTimePicker(context, fechaSalida) { h, m -> viewModel.updateHoraSalida(h, m) }
+        },
+        onMinutoSalidaClick = {
+            showTimePicker(context, fechaSalida) { h, m -> viewModel.updateHoraSalida(h, m) }
         },
         onGuardarClick = { viewModel.guardarFechas() }
     )
@@ -52,8 +57,10 @@ fun MainContent(
     fechaSalida: LocalDateTime,
     onEntradaClick: () -> Unit,
     onSalidaClick: () -> Unit,
-    onHoraEntradaChange: (String) -> Unit,
-    onHoraSalidaChange: (String) -> Unit,
+    onHoraEntradaClick: () -> Unit,
+    onMinutoEntradaClick: () -> Unit,
+    onHoraSalidaClick: () -> Unit,
+    onMinutoSalidaClick: () -> Unit,
     onGuardarClick: () -> Unit
 ) {
     val dateDeviceInfo = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -71,7 +78,8 @@ fun MainContent(
             fechaTexto = fechaEntrada.format(dateDeviceInfo),
             horaValor = String.format(Locale.getDefault(),"%02d:%02d", fechaEntrada.hour, fechaEntrada.minute),
             onDateClick = onEntradaClick,
-            onHoraChange = onHoraEntradaChange
+            onHorasClick = onHoraEntradaClick,
+            onMinutosClick = onMinutoEntradaClick
         )
 
         // Sección Salida
@@ -80,7 +88,8 @@ fun MainContent(
             fechaTexto = fechaSalida.format(dateDeviceInfo),
             horaValor = String.format(Locale.getDefault(),"%02d:%02d", fechaSalida.hour, fechaSalida.minute),
             onDateClick = onSalidaClick,
-            onHoraChange = onHoraSalidaChange
+            onHorasClick = onHoraSalidaClick,
+            onMinutosClick = onMinutoSalidaClick
         )
 
         Button(onClick = onGuardarClick, modifier = Modifier.fillMaxWidth()) {
@@ -104,25 +113,43 @@ fun showDatePicker(context: android.content.Context, currentDate: LocalDateTime,
                 currentDate.minute
             )
 
-            // Opción B: Establecer a las 00:00 (inicio del día)
-            // val nuevaFechaHora = LocalDateTime.of(year, month + 1, dayOfMonth, 0, 0)
-
             onDateSelected(nuevaFechaHora)
         },
         currentDate.year,
-        currentDate.monthValue - 1,
+        currentDate.monthValue - 1, // Forzado a hacerlo así por que DatePickerDialog funciona del 0-11 pero el LocalDateTime es 1-12
         currentDate.dayOfMonth
     ).show()
 }
 
+fun showTimePicker(
+    context: android.content.Context,
+    fechaActual: LocalDateTime,
+    onTimeSelected: (Int, Int) -> Unit
+) {
+    TimePickerDialog(
+        context,
+        { _, hour, minute ->
+            onTimeSelected(hour, minute)
+        },
+        fechaActual.hour,
+        fechaActual.minute,
+        true // true para formato 24h
+    ).show()
+}
 @Composable
 fun DateTimeSelectorGroup(
     label: String,
     fechaTexto: String,
-    horaValor: String,
+    horaValor: String, // Asumimos formato "HH:mm"
     onDateClick: () -> Unit,
-    onHoraChange: (String) -> Unit
+    onHorasClick: () -> Unit,   // <--- Nueva
+    onMinutosClick: () -> Unit  // <--- Nueva
 ) {
+    // Extraemos horas y minutos de la variable existente
+    val partes = horaValor.split(":")
+    val horas = partes.getOrNull(0) ?: ""
+    val minutos = partes.getOrNull(1) ?: ""
+
     Column {
         Text(label, style = MaterialTheme.typography.labelLarge)
         Row(
@@ -130,7 +157,7 @@ fun DateTimeSelectorGroup(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 1. "Desplegable" de Fecha (Día/Mes/Año)
+            // 1. "Desplegable" de Fecha
             OutlinedCard(
                 onClick = onDateClick,
                 modifier = Modifier.weight(1f)
@@ -144,39 +171,35 @@ fun DateTimeSelectorGroup(
                 }
             }
 
-            // 2. Campo para rellenar Hora y Minutos
-            OutlinedTextField(
-                value = horaValor,
-                onValueChange = onHoraChange,
-                modifier = Modifier.width(100.dp),
-                label = { Text("HH:mm") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true
-            )
+            // 2. Selectores divididos para Horas y Minutos
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Selector de Horas
+                OutlinedCard(
+                    onClick = onHorasClick, // Acción para abrir el selector de horas
+                    modifier = Modifier.width(65.dp)
+                ) {
+                    Box(modifier = Modifier.padding(12.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        // Si horas está vacío, mostramos "HH" como ayuda
+                        Text(text = horas.ifEmpty { "HH" }, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+
+                Text(":", style = MaterialTheme.typography.bodyLarge)
+
+                // Selector de Minutos
+                OutlinedCard(
+                    onClick = onMinutosClick, // Acción para abrir el selector de minutos
+                    modifier = Modifier.width(65.dp)
+                ) {
+                    Box(modifier = Modifier.padding(12.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        // Si minutos está vacío, mostramos "mm"
+                        Text(text = minutos.ifEmpty { "mm" }, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
         }
     }
 }
-
-
-
-@Preview(showBackground = true, name = "Vista de Registro")
-@Composable
-fun MainScreenPreview() {
-    // Datos simulados para la previsualización [cite: 20]
-    val fechaSimuladaEntrada = LocalDateTime.of(2026, 4, 6, 9, 30)
-    val fechaSimuladaSalida = LocalDateTime.of(2026, 4, 6, 18, 15)
-
-    MaterialTheme {
-        MainContent(
-            fechaEntrada = fechaSimuladaEntrada,
-            fechaSalida = fechaSimuladaSalida,
-            onEntradaClick = {},
-            onSalidaClick = {},
-            // Simulación de los callbacks de cambio de hora [cite: 55]
-            onHoraEntradaChange = {},
-            onHoraSalidaChange = {},
-            onGuardarClick = {}
-        )
-    }
-}
-

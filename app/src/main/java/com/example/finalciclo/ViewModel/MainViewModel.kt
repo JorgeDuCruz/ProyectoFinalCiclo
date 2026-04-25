@@ -1,5 +1,6 @@
 package com.example.finalciclo.ViewModel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,21 +31,14 @@ class MainViewModel : ViewModel() {
         // Log de guardado solicitado
         println("guardado $entradaStr hasta $salidaStr")
     }
-    fun updateHoraDesdeTexto(esEntrada: Boolean, texto: String) {
-        try {
-            val partes = texto.split(":")
-            if (partes.size == 2) {
-                val h = partes[0].toInt().coerceIn(0, 23)
-                val m = partes[1].toInt().coerceIn(0, 59)
 
-                if (esEntrada) {
-                    _fechaEntrada.value = _fechaEntrada.value.withHour(h).withMinute(m)
-                } else {
-                    _fechaSalida.value = _fechaSalida.value.withHour(h).withMinute(m)
-                }
-            }
-        } catch (e: Exception) {
-            // Manejo de error silencioso para evitar crashes durante el tipeo
-        }
+    fun updateHoraEntrada(hora: Int, minuto: Int) {
+        val actual = _fechaEntrada.value
+        _fechaEntrada.value = actual.withHour(hora).withMinute(minuto)
+    }
+
+    fun updateHoraSalida(hora: Int, minuto: Int) {
+        val actual = _fechaSalida.value
+        _fechaSalida.value = actual.withHour(hora).withMinute(minuto)
     }
 }
