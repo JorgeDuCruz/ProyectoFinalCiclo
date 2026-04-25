@@ -29,7 +29,7 @@ class MainViewModel : ViewModel() {
         val entradaStr = _fechaEntrada.value.format(formatter)
         val salidaStr = _fechaSalida.value.format(formatter)
         // Log de guardado solicitado
-        println("guardado $entradaStr hasta $salidaStr")
+        Log.d("GUARDAR","guardado $entradaStr hasta $salidaStr")
     }
 
     fun updateHoraEntrada(hora: Int, minuto: Int) {
