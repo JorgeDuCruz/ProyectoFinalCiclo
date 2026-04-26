@@ -11,8 +11,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.Duration
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Inicialización con fecha y hora actual según el requisito [cite: 17]
@@ -44,6 +47,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val entrada = _fechaEntrada.value
         val salida = _fechaSalida.value
 
+        val (horas_normal, horas_especiales) = calcularDistribucionHoras(entrada,salida)
+
         // 2. Creamos el objeto de la entidad Jornada
         // Usamos 0 para el ID para que Room lo autogenere
         val nuevaJornada = Jornada(
@@ -52,8 +57,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             fecha_salida = salida,
             hora_entrada = entrada.format(DateTimeFormatter.ofPattern("HH:mm")),
             hora_salida = salida.format(DateTimeFormatter.ofPattern("HH:mm")),
-            horas_normales = 8.0f, // Aquí podrías poner el cálculo de duración
-            horas_especiales = 0.0f
+            horas_normales = horas_normal, // Aquí podrías poner el cálculo de duración
+            horas_especiales = horas_especiales
         )
 
         // 3. Lanzamos una corrutina en el hilo de E/S (IO)
@@ -80,5 +85,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateHoraSalida(hora: Int, minuto: Int) {
         val actual = _fechaSalida.value
         _fechaSalida.value = actual.withHour(hora).withMinute(minuto)
+    }
+
+
+    fun calcularDistribucionHoras(inicio: LocalDateTime, fin: LocalDateTime): Pair<Float, Float> {
+        var horasNormales = 0f
+        var horasEspeciales = 0f
+
+        // Usamos un intervalo de 15 minutos para mayor precisión en el cálculo
+        val pasoMinutos = 15L
+        var tiempoActual = inicio
+
+        while (tiempoActual.isBefore(fin)) {
+            val proximoTramo = tiempoActual.plusMinutes(pasoMinutos)
+            val finalDelTramo = if (proximoTramo.isAfter(fin)) fin else proximoTramo
+
+            // Calculamos la duración de este tramo en horas (0.25f para 15 min)
+            val duracionTramo = ChronoUnit.MINUTES.between(tiempoActual, finalDelTramo) / 60f
+
+            if (esHoraEspecial(tiempoActual)) {
+                horasEspeciales += duracionTramo
+            } else {
+                horasNormales += duracionTramo
+            }
+
+            tiempoActual = proximoTramo
+        }
+
+        return Pair(horasNormales, horasEspeciales)
+    }
+
+    private fun esHoraEspecial(momento: LocalDateTime): Boolean {
+        // 1. Comprobación de Fin de Semana (Sábado o Domingo)
+        val esFinde = momento.dayOfWeek == DayOfWeek.SATURDAY || momento.dayOfWeek == DayOfWeek.SUNDAY
+
+        // 2. Comprobación de Horario Nocturno (22:00 a 06:00)
+        val hora = momento.hour
+        val esNocturno = hora >= 22 || hora < 6
+
+        // 3. Comprobación de Festivos (Aquí deberías añadir tu lista de festivos)
+        val esFestivo = consultarCalendarioFestivos(momento)
+
+        return esFinde || esNocturno || esFestivo
+    }
+
+    private fun consultarCalendarioFestivos(fecha: LocalDateTime): Boolean {
+        // Implementación sencilla para ejemplo.
+        // En el futuro podrías leer esto de una tabla de "Festivos" en Room.
+        val diaMes = "${fecha.dayOfMonth}/${fecha.monthValue}"
+        val festivosFijos = listOf("1/1", "6/1", "1/5", "15/8", "12/10", "1/11", "6/12", "8/12", "25/12")
+        return festivosFijos.contains(diaMes)
     }
 }
