@@ -9,13 +9,15 @@ import com.example.finalciclo.Model.Tablas.Jornada
 import com.example.finalciclo.ViewModel.Repositories.JornadaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
-import java.time.Duration
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Inicialización con fecha y hora actual según el requisito [cite: 17]
@@ -34,6 +36,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val dao = AppDatabase.getDatabase(application).jornadaDAO()
         repository = JornadaRepository(dao)
     }
+    val jornadasPorSemana: StateFlow<Map<Int, List<Jornada>>> = repository.allJornadas()
+        .map { lista ->
+            Log.d("BUSCAR","Jornada: ${lista}")
+            lista.groupBy { jornada ->
+                // Agrupamos por el número de semana del año
+                Log.d("BUSCAR","Jornada: ${jornada}")
+                jornada.fecha_entrada.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+            }
+        }
+        .stateIn(viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyMap())
+
     fun updateFechaEntrada(nuevaFecha: LocalDateTime) {
         _fechaEntrada.value = nuevaFecha
     }
