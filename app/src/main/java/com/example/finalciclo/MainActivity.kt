@@ -26,6 +26,7 @@ import com.example.finalciclo.ui.theme.FinalCicloTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
+import com.example.finalciclo.Interfaz.JornadasScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +61,7 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         when (selectedTabIndex) {
                             0 -> MainScreen(viewModel) // Tu pantalla de registro
-                            1 -> Text("Aquí irá el Historial (Próximamente)")
+                            1 -> JornadasScreen(viewModel)//Text("Aquí irá el Historial (Próximamente)")
                         }
                     }
                 }
