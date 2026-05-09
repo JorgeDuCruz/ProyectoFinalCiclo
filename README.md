@@ -43,8 +43,4 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion") // Soporte para Corrutinas en Room
     ksp("androidx.room:room-compiler:$roomVersion")      // Procesador de anotaciones vía KSP
-
-    // --- Asincronía (Corrutinas de Kotlin) ---
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 }
